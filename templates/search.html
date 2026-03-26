@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WongNork — Search Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
+</head>
+
+<body>
+    <header>
+        <div class="header-inner">
+            <a class="brand" href="/">
+                <div class="brand-bubble">W</div>
+                <span class="brand-text">WongNork</span>
+            </a>
+
+            <div class="brand-cooking">
+                <span class="cooking-icon">🍳</span>
+                <span class="cooking-label">Cooking</span>
+            </div>
+
+            <form id="headerSearchForm" class="header-search" action="/search" method="get">
+                <input id="headerSearchInput" name="q" type="text" placeholder="Search recipes, ingredients..." value="{{ query }}">
+                <button type="submit" aria-label="Search">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <div id="resultsSection">
+            <div id="typoAlert" class="alert">
+                Did you mean: <a id="suggestedLink"></a>?
+            </div>
+
+            <div class="results-header">
+                <h2 class="results-title">Recipes for <span id="queryLabel"></span></h2>
+                <span id="resultsCount" class="results-count"></span>
+            </div>
+
+            <div id="spinner" class="spinner"><span class="spinner-ring"></span></div>
+
+            <div id="noResults" class="no-results">
+                <h3>No recipes found</h3>
+                <p>Try simpler keywords or different ingredients</p>
+            </div>
+
+            <div id="recipeList" class="recipe-list"></div>
+        </div>
+
+    </main>
+
+    <div id="recipeModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img id="modalImg" class="modal-hero-img" src="" alt="">
+            <div class="modal-body">
+                <h2 id="modalTitle" class="modal-title"></h2>
+                <div class="modal-cols">
+                    <div>
+                        <div class="col-label">Ingredients</div>
+                        <ul id="modalIngredients"></ul>
+                    </div>
+                    <div>
+                        <div class="col-label">Instructions</div>
+                        <ol id="modalInstructions"></ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const query = {{ query | tojson }};
+            if (query) {
+                executeSearch(query);
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+</body>
+
+</html>

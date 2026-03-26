@@ -2,33 +2,46 @@ from flask import Flask, request, jsonify, render_template
 import pickle
 import numpy as np
 
-from models import spell_preprocessor, CustomPreprocessor, SpellChecker, RecipeSearchEngine
+from models import (
+    spell_preprocessor,
+    CustomPreprocessor,
+    SpellChecker,
+    RecipeSearchEngine,
+)
 
 app = Flask(__name__)
 
-with open('resources/recipe_search_engine.pkl', 'rb') as f:
+with open("resources/recipe_search_engine.pkl", "rb") as f:
     searcher = pickle.load(f)
 
-with open('resources/spell_checker.pkl', 'rb') as f:
+with open("resources/spell_checker.pkl", "rb") as f:
     spell_checker = pickle.load(f)
 
 
-@app.route('/')
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@app.route('/search', methods=['GET'])
+@app.route("/search")
+def search_page():
+    query = request.args.get("q", "")
+    return render_template("search.html", query=query)
+
+
+@app.route("/api/search", methods=["GET"])
 def search():
-    query = request.args.get('q', '').lower()
+    query = request.args.get("q", "").lower()
 
     if not query:
-        return jsonify({
-            "original_query": "",
-            "has_typo": False,
-            "suggested_query": "",
-            "results": []
-        })
+        return jsonify(
+            {
+                "original_query": "",
+                "has_typo": False,
+                "suggested_query": "",
+                "results": [],
+            }
+        )
 
     query_words = query.split()
 
@@ -44,16 +57,18 @@ def search():
     suggested_query = " ".join(corrected_words)
 
     results_df = searcher.search(query)
-    results_df = results_df[results_df['Score'] > 0.0]
-    results = results_df.to_dict(orient='records')
+    results_df = results_df[results_df["Score"] > 0.0]
+    results = results_df.to_dict(orient="records")
 
-    return jsonify({
-        "original_query": query,
-        "has_typo": has_typo,
-        "suggested_query": suggested_query if has_typo else "",
-        "results": results
-    })
+    return jsonify(
+        {
+            "original_query": query,
+            "has_typo": has_typo,
+            "suggested_query": suggested_query if has_typo else "",
+            "results": results,
+        }
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True, port=5000)
