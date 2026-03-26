@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import pickle
 import numpy as np
 
@@ -13,9 +13,23 @@ with open('resources/spell_checker.pkl', 'rb') as f:
     spell_checker = pickle.load(f)
 
 
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('q', '').lower()
+
+    if not query:
+        return jsonify({
+            "original_query": "",
+            "has_typo": False,
+            "suggested_query": "",
+            "results": []
+        })
+
     query_words = query.split()
 
     corrected_words = []
@@ -30,6 +44,7 @@ def search():
     suggested_query = " ".join(corrected_words)
 
     results_df = searcher.search(query)
+    results_df = results_df[results_df['Score'] > 0.0]
     results = results_df.to_dict(orient='records')
 
     return jsonify({
