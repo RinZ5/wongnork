@@ -1,6 +1,9 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file, redirect
 import pickle
 import numpy as np
+import os
+import hashlib
+import requests
 
 from models import (
     spell_preprocessor,
@@ -8,6 +11,9 @@ from models import (
     SpellChecker,
     RecipeSearchEngine,
 )
+
+CACHE_DIR = 'image_cache'
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 app = Flask(__name__)
 
@@ -18,12 +24,37 @@ with open("resources/spell_checker.pkl", "rb") as f:
     spell_checker = pickle.load(f)
 
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
 
 
-@app.route("/search")
+@app.route('/api/img-proxy', methods=['GET'])
+def img_proxy():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
+    file_path = os.path.join(CACHE_DIR, f"{url_hash}.jpg")
+
+    if os.path.exists(file_path):
+        return send_file(file_path, mimetype='image/jpeg')
+
+    try:
+        response = requests.get(url, stream=True, timeout=5)
+        response.raise_for_status()
+
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(1024):
+                f.write(chunk)
+
+        return send_file(file_path, mimetype='image/jpeg')
+    except Exception:
+        return redirect('/static/images/no-image.jpg')
+
+
+@app.route("/search", methods=["GET"])
 def search_page():
     query = request.args.get("q", "")
     return render_template("search.html", query=query)

@@ -9,6 +9,10 @@ const parseArray = (str) => {
 
 const getImage = (str) => {
     const arr = parseArray(str);
-    if (arr.length && arr[0].startsWith('http')) return arr[0];
+
+    if (arr.length > 0 && arr[0].startsWith('http')) {
+        return `/api/img-proxy?url=${encodeURIComponent(arr[0])}`;
+    }
+
     return '/static/images/no-image.jpg';
 };

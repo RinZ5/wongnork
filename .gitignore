@@ -1,5 +1,7 @@
-/data
-/resources
+data/
+resources/
 .DS_Store
 .vscode/
-/__pycache__
+__pycache__/
+.ruff_cache
+image_cache/
