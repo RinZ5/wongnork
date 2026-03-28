@@ -6,7 +6,14 @@ import hashlib
 import requests
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
 from dotenv import load_dotenv
 
 from models import (
@@ -30,8 +37,7 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError(
-        "SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -43,7 +49,7 @@ def unauthorized():
 
 
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -58,19 +64,20 @@ class User(UserMixin):
 def load_user(user_id):
     conn = get_db_connection()
     user_row = conn.execute(
-        'SELECT * FROM Users WHERE UserId = ?', (user_id,)).fetchone()
+        "SELECT * FROM Users WHERE UserId = ?", (user_id,)
+    ).fetchone()
     conn.close()
 
     if user_row:
-        return User(id=user_row['UserId'], username=user_row['Username'])
+        return User(id=user_row["UserId"], username=user_row["Username"])
     return None
 
 
-@app.route('/api/register', methods=['POST'])
+@app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get("username")
+    password = data.get("password")
 
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
@@ -80,7 +87,9 @@ def register():
 
     try:
         conn.execute(
-            'INSERT INTO Users (Username, PasswordHash) VALUES (?, ?)', (username, hashed_pw))
+            "INSERT INTO Users (Username, PasswordHash) VALUES (?, ?)",
+            (username, hashed_pw),
+        )
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -90,19 +99,20 @@ def register():
     return jsonify({"message": "User registered successfully"}), 201
 
 
-@app.route('/api/login', methods=['POST'])
+@app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get("username")
+    password = data.get("password")
 
     conn = get_db_connection()
     user_row = conn.execute(
-        'SELECT * FROM Users WHERE Username = ?', (username,)).fetchone()
+        "SELECT * FROM Users WHERE Username = ?", (username,)
+    ).fetchone()
     conn.close()
 
-    if user_row and check_password_hash(user_row['PasswordHash'], password):
-        user = User(id=user_row['UserId'], username=user_row['Username'])
+    if user_row and check_password_hash(user_row["PasswordHash"], password):
+        user = User(id=user_row["UserId"], username=user_row["Username"])
         login_user(user)
 
         return jsonify({"message": "Logged in successfully", "user_id": user.id}), 200
@@ -110,14 +120,14 @@ def login():
     return jsonify({"error": "Invalid credentials"}), 401
 
 
-@app.route('/api/logout', methods=['POST'])
+@app.route("/api/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
     return jsonify({"message": "Logged out successfully"}), 200
 
 
-@app.route('/api/me', methods=['GET'])
+@app.route("/api/me", methods=["GET"])
 @login_required
 def me():
     return jsonify({"user_id": current_user.id, "username": current_user.username}), 200
@@ -126,6 +136,16 @@ def me():
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
+
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET"])
+def register_page():
+    return render_template("register.html")
 
 
 @app.route("/api/img-proxy", methods=["GET"])
