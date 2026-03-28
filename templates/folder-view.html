@@ -4,12 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — Search Results</title>
+    <title>WongNork — {{ folder_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
@@ -30,7 +28,7 @@
             </div>
 
             <form id="headerSearchForm" class="header-search" action="/search" method="get">
-                <input id="headerSearchInput" name="q" type="text" placeholder="Search recipes, ingredients..." value="{{ query }}">
+                <input id="headerSearchInput" name="q" type="text" placeholder="Search recipes, ingredients...">
                 <button type="submit" aria-label="Search">
                     <svg viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
@@ -47,26 +45,34 @@
     </header>
 
     <main>
-        <div id="resultsSection">
-            <div id="typoAlert" class="alert">
-                Did you mean: <a id="suggestedLink"></a>?
+        <div class="folder-view">
+            <div class="folder-breadcrumb">
+                <a href="/folders">My Folders</a>
+                <span class="separator">/</span>
+                <span class="current">{{ folder_name }}</span>
             </div>
 
-            <div class="results-header">
-                <h2 class="results-title">Recipes for <span id="queryLabel"></span></h2>
-                <span id="resultsCount" class="results-count"></span>
+            <div class="folder-header">
+                <div>
+                    <h1 class="folder-title">{{ folder_name }}</h1>
+                    <span id="recipeCount" class="recipe-count">Loading...</span>
+                </div>
+                <a href="/folders" class="btn btn-secondary">Back to Folders</a>
             </div>
 
-            <div id="spinner" class="spinner"><span class="spinner-ring"></span></div>
+            <div id="resultsSection">
+                <div id="spinner" class="spinner"><span class="spinner-ring"></span></div>
 
-            <div id="noResults" class="no-results">
-                <h3>No recipes found</h3>
-                <p>Try simpler keywords or different ingredients</p>
+                <div id="noResults" class="no-results" style="display: none;">
+                    <div class="no-results-icon">📂</div>
+                    <h3>This folder is empty.....</h3>
+                    <p>Start searching and saving recipes to fill this folder!</p>
+                    <a href="/search" class="btn btn-primary">Search Recipes</a>
+                </div>
+
+                <div id="recipeList" class="recipe-list"></div>
             </div>
-
-            <div id="recipeList" class="recipe-list"></div>
         </div>
-
     </main>
 
     <div id="recipeModal" class="modal-overlay">
@@ -115,16 +121,15 @@
 
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script>
+        const folderId = {{ folder_id }};
+        const folderName = {{ folder_name | tojson }};
         document.addEventListener('DOMContentLoaded', () => {
-            const query = {{ query | tojson }};
-            if (query) {
-                executeSearch(query);
-            }
+            loadFolderRecipes(folderId);
         });
     </script>
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
 </body>

@@ -5,9 +5,8 @@ import unicodedata
 
 def spell_preprocessor(s):
     s = str(s).lower()
-    s = unicodedata.normalize('NFKD', s).encode(
-        'ascii', 'ignore').decode('utf-8')
-    s = re.sub(r'[^a-z\s]', ' ', s)
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
+    s = re.sub(r"[^a-z\s]", " ", s)
     return s
 
 
@@ -18,13 +17,12 @@ class CustomPreprocessor:
 
     def __call__(self, s):
         s = str(s).lower()
-        s = unicodedata.normalize('NFKD', s).encode(
-            'ascii', 'ignore').decode('utf-8')
-        s = re.sub(r'[^a-z\s]', ' ', s)
+        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
+        s = re.sub(r"[^a-z\s]", " ", s)
         tokens = s.split()
         tokens = [w for w in tokens if w not in self.stop_dict and len(w) > 2]
         tokens = [self.stem_cache.get(w, w) for w in tokens]
-        return ' '.join(tokens)
+        return " ".join(tokens)
 
 
 class SpellChecker:
@@ -39,13 +37,18 @@ class SpellChecker:
         return max(self.candidates(word), key=self.P)
 
     def candidates(self, word):
-        return (self.known([word]) or self.known(self.edits1(word)) or self.known(self.edits2(word)) or [word])
+        return (
+            self.known([word])
+            or self.known(self.edits1(word))
+            or self.known(self.edits2(word))
+            or [word]
+        )
 
     def known(self, words):
         return set(w for w in words if w in self.WORDS)
 
     def edits1(self, word):
-        letters = 'abcdefghijklmnopqrstuvwxyz'
+        letters = "abcdefghijklmnopqrstuvwxyz"
         splits = [(word[:i], word[i:]) for i in range(len(word) + 1)]
         deletes = [L + R[1:] for L, R in splits if R]
         transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R) > 1]
@@ -69,5 +72,11 @@ class RecipeSearchEngine:
         rank = np.argsort(scores)[::-1]
 
         results = self.df.iloc[rank[:top_k]].copy()
-        results['Score'] = scores[rank[:top_k]]
+        results["Score"] = scores[rank[:top_k]]
+        return results
+
+    def get_by_ids(self, recipe_ids):
+        mask = self.df.index.isin(recipe_ids)
+        results = self.df[mask].copy()
+        results["Score"] = 0.0
         return results

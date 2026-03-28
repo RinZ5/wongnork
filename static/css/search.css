@@ -115,6 +115,24 @@
   margin-top: 0.25rem;
 }
 
+.bookmark-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.bookmark-btn:hover {
+  background: var(--bg);
+  color: var(--orange);
+}
+
 .badge-score {
   font-size: 0.78rem;
   font-weight: 600;

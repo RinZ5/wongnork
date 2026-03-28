@@ -37,8 +37,7 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError(
-        "SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -180,6 +179,30 @@ def search_page():
     return render_template("search.html", query=query)
 
 
+@app.route("/folders", methods=["GET"])
+@login_required
+def folders_page():
+    return render_template("folders.html")
+
+
+@app.route("/folders/<int:folder_id>", methods=["GET"])
+@login_required
+def folder_view_page(folder_id):
+    conn = get_db_connection()
+    folder = conn.execute(
+        "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
+        (folder_id, current_user.id),
+    ).fetchone()
+    conn.close()
+
+    if not folder:
+        return redirect("/folders")
+
+    return render_template(
+        "folder-view.html", folder_id=folder_id, folder_name=folder["FolderName"]
+    )
+
+
 @app.route("/api/search", methods=["GET"])
 def search():
     query = request.args.get("q", "").lower()
@@ -221,11 +244,11 @@ def search():
     )
 
 
-@app.route('/api/folders', methods=['POST'])
+@app.route("/api/folders", methods=["POST"])
 @login_required
 def create_folder():
     data = request.get_json()
-    folder_name = data.get('folder_name')
+    folder_name = data.get("folder_name")
 
     if not folder_name:
         return jsonify({"error": "Folder name is required"}), 400
@@ -234,30 +257,60 @@ def create_folder():
     cursor = conn.cursor()
 
     cursor.execute(
-        'INSERT INTO Folders (UserId, FolderName) VALUES (?, ?)',
-        (current_user.id, folder_name)
+        "INSERT INTO Folders (UserId, FolderName) VALUES (?, ?)",
+        (current_user.id, folder_name),
     )
     conn.commit()
     new_folder_id = cursor.lastrowid
     conn.close()
 
-    return jsonify({"message": f"Folder '{folder_name}' created!", "folder_id": new_folder_id}), 201
+    return jsonify(
+        {"message": f"Folder '{folder_name}' created!", "folder_id": new_folder_id}
+    ), 201
 
 
-@app.route('/api/folders', methods=['GET'])
+@app.route("/api/folders", methods=["GET"])
 @login_required
 def get_folders():
     conn = get_db_connection()
     folders = conn.execute(
-        'SELECT FolderId, FolderName FROM Folders WHERE UserId = ?',
-        (current_user.id,)
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
     ).fetchall()
     conn.close()
 
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
-                   for f in folders]
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
 
     return jsonify({"folders": folder_list}), 200
+
+
+@app.route("/api/folders/<int:folder_id>/recipes", methods=["GET"])
+@login_required
+def get_folder_recipes(folder_id):
+    conn = get_db_connection()
+
+    folder = conn.execute(
+        "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
+        (folder_id, current_user.id),
+    ).fetchone()
+
+    if not folder:
+        conn.close()
+        return jsonify({"error": "Folder not found"}), 404
+
+    bookmarks = conn.execute(
+        "SELECT RecipeId FROM Bookmarks WHERE FolderId = ?", (folder_id,)
+    ).fetchall()
+    conn.close()
+
+    recipe_ids = [b["RecipeId"] for b in bookmarks]
+
+    if not recipe_ids:
+        return jsonify({"folder_name": folder["FolderName"], "results": []}), 200
+
+    results_df = searcher.get_by_ids(recipe_ids)
+    results = results_df.to_dict(orient="records")
+
+    return jsonify({"folder_name": folder["FolderName"], "results": results}), 200
 
 
 if __name__ == "__main__":
