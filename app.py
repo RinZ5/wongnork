@@ -37,7 +37,8 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError(
+        "SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -218,6 +219,45 @@ def search():
             "results": results,
         }
     )
+
+
+@app.route('/api/folders', methods=['POST'])
+@login_required
+def create_folder():
+    data = request.get_json()
+    folder_name = data.get('folder_name')
+
+    if not folder_name:
+        return jsonify({"error": "Folder name is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        'INSERT INTO Folders (UserId, FolderName) VALUES (?, ?)',
+        (current_user.id, folder_name)
+    )
+    conn.commit()
+    new_folder_id = cursor.lastrowid
+    conn.close()
+
+    return jsonify({"message": f"Folder '{folder_name}' created!", "folder_id": new_folder_id}), 201
+
+
+@app.route('/api/folders', methods=['GET'])
+@login_required
+def get_folders():
+    conn = get_db_connection()
+    folders = conn.execute(
+        'SELECT FolderId, FolderName FROM Folders WHERE UserId = ?',
+        (current_user.id,)
+    ).fetchall()
+    conn.close()
+
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
+                   for f in folders]
+
+    return jsonify({"folders": folder_list}), 200
 
 
 if __name__ == "__main__":
