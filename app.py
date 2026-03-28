@@ -37,7 +37,8 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError(
+        "SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -274,13 +275,33 @@ def create_folder():
 def get_folders():
     conn = get_db_connection()
     folders = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (
+            current_user.id,)
     ).fetchall()
     conn.close()
 
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
+                   for f in folders]
 
     return jsonify({"folders": folder_list}), 200
+
+
+@app.route('/api/folders/<int:folder_id>', methods=['DELETE'])
+@login_required
+def delete_folder(folder_id):
+    conn = get_db_connection()
+    folder = conn.execute('SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?',
+                          (folder_id, current_user.id)).fetchone()
+
+    if not folder:
+        conn.close()
+        return jsonify({"error": "Folder not found or access denied"}), 404
+
+    conn.execute('DELETE FROM Folders WHERE FolderId = ?', (folder_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Folder deleted successfully"}), 200
 
 
 @app.route("/api/folders/<int:folder_id>/recipes", methods=["GET"])
