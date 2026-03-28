@@ -245,6 +245,18 @@ def search():
     )
 
 
+@app.route("/api/recipes/<int:recipe_id>", methods=["GET"])
+def get_recipe(recipe_id):
+    results_df = searcher.get_by_ids([recipe_id])
+
+    if results_df.empty:
+        return jsonify({"error": "Recipe not found"}), 404
+
+    recipe_data = results_df.iloc[0].to_dict()
+
+    return jsonify({"recipe": recipe_data}), 200
+
+
 @app.route("/api/folders", methods=["POST"])
 @login_required
 def create_folder():
