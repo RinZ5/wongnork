@@ -83,6 +83,9 @@ async function renderFoldersList() {
                 <span class="folder-icon">📁</span>
                 <span class="folder-name">${folder.name}</span>
             </a>
+            <button class="folder-delete-btn" onclick="deleteFolder(${folder.id}, '${folder.name}', event)" aria-label="Delete folder">
+                ✕
+            </button>
         </div>
     `).join('');
 }
@@ -217,6 +220,33 @@ function showToast(message, type = 'success') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+async function deleteFolder(folderId, folderName, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+
+    const confirmed = confirm(`Are you sure you want to delete the folder "${folderName}"?`);
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/folders/${folderId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showToast(`Folder "${folderName}" deleted successfully!`);
+            renderFoldersList();
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to delete folder', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
