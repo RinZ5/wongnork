@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS Users (
+    UserId INTEGER PRIMARY KEY AUTOINCREMENT,
+    Username TEXT UNIQUE NOT NULL,
+    PasswordHash TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Folders (
+    FolderId INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserId INTEGER NOT NULL,
+    FolderName TEXT NOT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Bookmarks (
+    BookmarkId INTEGER PRIMARY KEY AUTOINCREMENT,
+    FolderId INTEGER NOT NULL,
+    RecipeId INTEGER NOT NULL,
+    UserRating INTEGER CHECK(
+        UserRating >= 1
+        AND UserRating <= 5
+    ),
+    FOREIGN KEY (FolderId) REFERENCES Folders(FolderId) ON DELETE CASCADE,
+    UNIQUE(FolderId, RecipeId)
+);
