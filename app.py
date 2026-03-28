@@ -1,9 +1,14 @@
-from flask import Flask, request, jsonify, render_template, send_file, redirect
+from flask import Flask, request, jsonify, render_template, send_file, redirect, session
 import pickle
 import numpy as np
 import os
 import hashlib
 import requests
+import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models import (
     spell_preprocessor,
@@ -12,10 +17,13 @@ from models import (
     RecipeSearchEngine,
 )
 
-CACHE_DIR = 'image_cache'
+CACHE_DIR = "image_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key:
+    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
 
 with open("resources/recipe_search_engine.pkl", "rb") as f:
     searcher = pickle.load(f)
@@ -29,29 +37,29 @@ def home():
     return render_template("index.html")
 
 
-@app.route('/api/img-proxy', methods=['GET'])
+@app.route("/api/img-proxy", methods=["GET"])
 def img_proxy():
-    url = request.args.get('url')
+    url = request.args.get("url")
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
+    url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
     file_path = os.path.join(CACHE_DIR, f"{url_hash}.jpg")
 
     if os.path.exists(file_path):
-        return send_file(file_path, mimetype='image/jpeg')
+        return send_file(file_path, mimetype="image/jpeg")
 
     try:
         response = requests.get(url, stream=True, timeout=5)
         response.raise_for_status()
 
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             for chunk in response.iter_content(1024):
                 f.write(chunk)
 
-        return send_file(file_path, mimetype='image/jpeg')
+        return send_file(file_path, mimetype="image/jpeg")
     except Exception:
-        return redirect('/static/images/no-image.jpg')
+        return redirect("/static/images/no-image.jpg")
 
 
 @app.route("/search", methods=["GET"])
