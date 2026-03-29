@@ -15,6 +15,8 @@ from flask_login import (
     current_user,
 )
 from dotenv import load_dotenv
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
 from models import (
     spell_preprocessor,
@@ -33,6 +35,17 @@ with open("resources/recipe_search_engine.pkl", "rb") as f:
 
 with open("resources/spell_checker.pkl", "rb") as f:
     spell_checker = pickle.load(f)
+
+with open("resources/recipe_recommendation_model.pkl", "rb") as f:
+    ml_data = pickle.load(f)
+    lgbm_model = ml_data['model']
+    X_final = ml_data['X_final']
+
+df_ml = pd.read_csv("data/raw/recipes.csv")
+df_ml = df_ml.dropna(subset=["AggregatedRating"]).reset_index(drop=True)
+
+recipe_id_to_idx = pd.Series(df_ml.index, index=df_ml['RecipeId']).to_dict()
+idx_to_recipe_id = pd.Series(df_ml['RecipeId'], index=df_ml.index).to_dict()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
@@ -492,6 +505,51 @@ def check_bookmark_status(recipe_id):
         ), 200
     else:
         return jsonify({"is_bookmarked": False}), 200
+
+
+@app.route("/api/folders/<int:folder_id>/recommendations", methods=["GET"])
+@login_required
+def get_folder_recommendations(folder_id):
+    conn = get_db_connection()
+    folder = conn.execute('SELECT 1 FROM Folders WHERE FolderId=? AND UserId=?',
+                          (folder_id, current_user.id)).fetchone()
+    if not folder:
+        conn.close()
+        return jsonify({"error": "Unauthorized"}), 403
+
+    bookmarks = conn.execute(
+        'SELECT RecipeId FROM Bookmarks WHERE FolderId = ?', (folder_id,)).fetchall()
+    conn.close()
+
+    user_recipe_ids = [b["RecipeId"] for b in bookmarks]
+
+    if not user_recipe_ids:
+        return jsonify({"recommendations": []}), 200
+
+    indices = [recipe_id_to_idx[rid]
+               for rid in user_recipe_ids if rid in recipe_id_to_idx]
+
+    if not indices:
+        return jsonify({"recommendations": []}), 200
+
+    user_profile = X_final[indices].mean(axis=0)
+    similarity_scores = np.asarray(X_final @ user_profile.T).flatten()
+    predicted_ratings = lgbm_model.predict(X_final)
+
+    scaler = MinMaxScaler()
+    normalized_similarity = scaler.fit_transform(
+        similarity_scores.reshape(-1, 1)).flatten()
+    normalized_ratings = scaler.fit_transform(
+        predicted_ratings.reshape(-1, 1)).flatten()
+    final_scores = (normalized_similarity * 0.7) + (normalized_ratings * 0.3)
+    final_scores[indices] = -1
+    top_indices = final_scores.argsort()[::-1][:10]
+    recommended_ids = [idx_to_recipe_id[idx] for idx in top_indices]
+
+    results_df = searcher.get_by_ids(recommended_ids)
+    results = results_df.to_dict(orient="records")
+
+    return jsonify({"recommendations": results}), 200
 
 
 if __name__ == "__main__":
