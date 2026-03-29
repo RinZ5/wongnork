@@ -37,8 +37,7 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError(
-        "SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -180,10 +179,21 @@ def search_page():
     return render_template("search.html", query=query)
 
 
+@app.route("/recipes/<int:recipe_id>", methods=["GET"])
+def recipe_page(recipe_id):
+    return render_template("recipe.html", recipe_id=recipe_id)
+
+
 @app.route("/folders", methods=["GET"])
 @login_required
 def folders_page():
     return render_template("folders.html")
+
+
+@app.route("/folders/new", methods=["GET"])
+@login_required
+def create_folder_page():
+    return render_template("create-folder.html")
 
 
 @app.route("/folders/<int:folder_id>", methods=["GET"])
@@ -233,7 +243,7 @@ def search():
 
     results_df = searcher.search(query)
     results_df = results_df[results_df["Score"] > 0.0]
-    results = results_df.to_dict(orient="records")
+    results = results_df.reset_index().to_dict(orient="records")
 
     return jsonify(
         {
@@ -243,6 +253,18 @@ def search():
             "results": results,
         }
     )
+
+
+@app.route("/api/recipes/<int:recipe_id>", methods=["GET"])
+def get_recipe(recipe_id):
+    results_df = searcher.get_by_ids([recipe_id])
+
+    if results_df.empty:
+        return jsonify({"error": "Recipe not found"}), 404
+
+    recipe_data = results_df.reset_index().iloc[0].to_dict()
+
+    return jsonify({"recipe": recipe_data}), 200
 
 
 @app.route("/api/folders", methods=["POST"])
@@ -275,29 +297,29 @@ def create_folder():
 def get_folders():
     conn = get_db_connection()
     folders = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (
-            current_user.id,)
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
     ).fetchall()
     conn.close()
 
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
-                   for f in folders]
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
 
     return jsonify({"folders": folder_list}), 200
 
 
-@app.route('/api/folders/<int:folder_id>', methods=['DELETE'])
+@app.route("/api/folders/<int:folder_id>", methods=["DELETE"])
 @login_required
 def delete_folder(folder_id):
     conn = get_db_connection()
-    folder = conn.execute('SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?',
-                          (folder_id, current_user.id)).fetchone()
+    folder = conn.execute(
+        "SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?",
+        (folder_id, current_user.id),
+    ).fetchone()
 
     if not folder:
         conn.close()
         return jsonify({"error": "Folder not found or access denied"}), 404
 
-    conn.execute('DELETE FROM Folders WHERE FolderId = ?', (folder_id,))
+    conn.execute("DELETE FROM Folders WHERE FolderId = ?", (folder_id,))
     conn.commit()
     conn.close()
 
@@ -329,7 +351,7 @@ def get_folder_recipes(folder_id):
         return jsonify({"folder_name": folder["FolderName"], "results": []}), 200
 
     results_df = searcher.get_by_ids(recipe_ids)
-    results = results_df.to_dict(orient="records")
+    results = results_df.reset_index().to_dict(orient="records")
 
     return jsonify({"folder_name": folder["FolderName"], "results": results}), 200
 

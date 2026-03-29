@@ -34,10 +34,10 @@ async function loadFolderRecipes(folderId) {
             const ings = parseArray(recipe.RecipeIngredientParts);
             const ingPreview = ings.slice(0, 5).join(', ') + (ings.length > 5 ? '…' : '');
 
-            const item = document.createElement('div');
+            const item = document.createElement('a');
             item.className = 'recipe-item';
+            item.href = `/recipes/${recipe.index}`;
             item.style.animationDelay = `${i * 40}ms`;
-            item.onclick = () => openModal(recipe);
             item.innerHTML = `
                 <img class="recipe-thumb" src="${getImage(recipe.Images)}" loading="lazy" alt="${recipe.Name}">
                 <div class="recipe-info">
@@ -115,7 +115,7 @@ function updateFolderDropdown() {
             if (folders.length === 0) {
                 dropdownHTML += `
                             <div class="dropdown-empty">No folders yet</div>
-                            <button class="dropdown-action" onclick="openCreateFolderModal()">Create one</button>
+                            <a href="/folders/new" class="dropdown-action">Create one</a>
                 `;
             } else {
                 maxFolders.forEach(folder => {
@@ -135,7 +135,7 @@ function updateFolderDropdown() {
 
                 dropdownHTML += `
                             <div class="dropdown-divider"></div>
-                            <button class="dropdown-action" onclick="openCreateFolderModal()">Create Folder</button>
+                            <a href="/folders/new" class="dropdown-action">Create Folder</a>
                 `;
             }
 
@@ -157,69 +157,6 @@ function toggleFolderDropdown(event) {
     if (dropdown) {
         dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
-}
-
-function openCreateFolderModal() {
-    document.getElementById('createFolderModal').style.display = 'flex';
-    document.getElementById('folderName').focus();
-}
-
-function closeCreateFolderModal() {
-    document.getElementById('createFolderModal').style.display = 'none';
-    document.getElementById('createFolderForm').reset();
-}
-
-async function handleCreateFolder(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const folderName = form.folderName.value;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnSpinner = submitBtn.querySelector('.btn-spinner');
-
-    btnText.style.display = 'none';
-    btnSpinner.style.display = 'inline-block';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/folders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folder_name: folderName })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            closeCreateFolderModal();
-            updateFolderDropdown();
-            if (document.getElementById('foldersList')) {
-                renderFoldersList();
-            }
-            showToast(`Folder "${folderName}" created successfully!`);
-        } else {
-            showToast(data.error || 'Failed to create folder', 'error');
-        }
-    } catch (error) {
-        showToast('Network error. Please try again.', 'error');
-    } finally {
-        btnText.style.display = 'inline';
-        btnSpinner.style.display = 'none';
-        submitBtn.disabled = false;
-    }
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
 }
 
 async function deleteFolder(folderId, folderName, event) {
@@ -254,12 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const createFolderBtn = document.getElementById('createFolderBtn');
     if (createFolderBtn) {
-        createFolderBtn.addEventListener('click', openCreateFolderModal);
-    }
-
-    const createFolderForm = document.getElementById('createFolderForm');
-    if (createFolderForm) {
-        createFolderForm.addEventListener('submit', handleCreateFolder);
+        createFolderBtn.href = '/folders/new';
     }
 
     if (document.getElementById('foldersList')) {
@@ -276,10 +208,4 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.dropdown-menu').forEach(menu => {
         menu.addEventListener('click', (e) => e.stopPropagation());
     });
-});
-
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-        closeCreateFolderModal();
-    }
 });
