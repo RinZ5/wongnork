@@ -52,8 +52,37 @@
                 </button>
             </form>
         </div>
+
+        <div id="summarySection" class="recommendation-section" style="display: none;">
+            <div class="section-header">
+                <h2>Recommended for You</h2>
+            </div>
+            
+            <div id="summarySpinner" class="spinner">
+                <span class="spinner-ring"></span>
+            </div>
+            
+            <div id="noSummary" class="no-recommendations" style="display: none;">
+                <p>Start bookmarking recipes to get personalized recommendations</p>
+            </div>
+            
+            <div id="summaryList" class="recipe-list"></div>
+        </div>
+
+        <div id="randomSection" class="recommendation-section">
+            <div class="section-header">
+                <h2>Discover New Recipes</h2>
+            </div>
+            
+            <div id="randomSpinner" class="spinner">
+                <span class="spinner-ring"></span>
+            </div>
+            
+            <div id="randomList" class="recipe-list"></div>
+        </div>
     </main>
 
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
