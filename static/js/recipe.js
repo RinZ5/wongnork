@@ -1,3 +1,23 @@
+async function checkBookmarkStatus(recipeId) {
+    try {
+        const res = await fetch(`/api/recipes/${recipeId}/bookmark_status`);
+        const data = await res.json();
+
+        if (res.ok && data.is_bookmarked) {
+            const bookmarkButton = document.getElementById('bookmarkButton');
+
+            bookmarkButton.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+            `;
+            bookmarkButton.classList.add('bookmarked');
+        }
+    } catch (err) {
+        console.error('Error checking bookmark status:', err);
+    }
+}
+
 async function loadRecipe(recipeId) {
     const spinner = document.getElementById('spinner');
     const errorSection = document.getElementById('errorSection');
@@ -34,11 +54,68 @@ async function loadRecipe(recipeId) {
 
         recipeContent.style.display = 'block';
 
+        await checkBookmarkStatus(recipeId);
+
     } catch (err) {
         spinner.style.display = 'none';
         errorSection.style.display = 'block';
         console.error(err);
     }
+}
+
+async function removeBookmark() {
+    const bookmarkButton = document.getElementById('bookmarkButton');
+
+    bookmarkButton.disabled = true;
+
+    try {
+        const response = await fetch(`/api/recipes/${recipeId}/bookmark`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            bookmarkButton.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+            `;
+            bookmarkButton.classList.remove('bookmarked');
+            showToast('Recipe removed from bookmarks');
+        } else {
+            showToast(data.error || 'Failed to remove bookmark', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    } finally {
+        bookmarkButton.disabled = false;
+    }
+}
+
+function handleBookmarkClick() {
+    const bookmarkButton = document.getElementById('bookmarkButton');
+    const isBookmarked = bookmarkButton.classList.contains('bookmarked');
+
+    if (isBookmarked) {
+        if (confirm('Remove this recipe from your saved recipes?')) {
+            removeBookmark();
+        }
+    } else {
+        window.location.href = `/recipes/${recipeId}/bookmark`;
+    }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
