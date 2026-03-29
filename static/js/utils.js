@@ -23,11 +23,18 @@ function getImage(imgString) {
   return match ? `/api/img-proxy?url=${encodeURIComponent(match[1])}` : '/static/images/no-image.jpg';
 }
 
-function createRecipeCard(recipe) {
+function createRecipeCard(recipe, isFolderView = false) {
   const card = document.createElement('div');
   card.className = 'recipe-item';
 
-  const rating = recipe.AggregatedRating ? recipe.AggregatedRating.toFixed(1) : '—';
+  let ratingDisplay = '—';
+
+  if (isFolderView && recipe.UserRating) {
+    ratingDisplay = `⭐ ${recipe.UserRating}/5 (Yours)`;
+  } else if (recipe.AggregatedRating) {
+    ratingDisplay = `⭐ ${recipe.AggregatedRating.toFixed(1)}`;
+  }
+
   const safeName = recipe.Name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   card.onclick = () => openModal(recipe);
@@ -37,7 +44,7 @@ function createRecipeCard(recipe) {
         <div class="recipe-info">
             <div class="recipe-name">${recipe.Name}</div>
             <div class="recipe-meta">
-                <span class="badge-score">⭐ ${rating}</span>
+                <span class="badge-score">${ratingDisplay}</span>
                 <button class="bookmark-btn" onclick="event.stopPropagation(); openBookmarkModal(${recipe.RecipeId}, '${safeName}')">
                     ⭐ Save
                 </button>

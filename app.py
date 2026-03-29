@@ -315,26 +315,28 @@ def delete_folder(folder_id):
 @login_required
 def get_folder_recipes(folder_id):
     conn = get_db_connection()
-    folder = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
-        (folder_id, current_user.id),
-    ).fetchone()
+    folder = conn.execute("SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
+                          (folder_id, current_user.id)).fetchone()
     if not folder:
         conn.close()
         return jsonify({"error": "Folder not found"}), 404
 
     bookmarks = conn.execute(
-        "SELECT RecipeId FROM Bookmarks WHERE FolderId = ?", (folder_id,)
-    ).fetchall()
+        "SELECT RecipeId, UserRating FROM Bookmarks WHERE FolderId = ?", (folder_id,)).fetchall()
     conn.close()
 
     recipe_ids = [b["RecipeId"] for b in bookmarks]
     if not recipe_ids:
         return jsonify({"folder_name": folder["FolderName"], "results": []}), 200
 
+    user_ratings = {b["RecipeId"]: b["UserRating"] for b in bookmarks}
+
     results_df = searcher.get_by_ids(recipe_ids)
     results_df = results_df.where(pd.notnull(results_df), None)
     results = results_df.to_dict(orient="records")
+
+    for recipe in results:
+        recipe["UserRating"] = user_ratings.get(recipe["RecipeId"])
 
     return jsonify({"folder_name": folder["FolderName"], "results": results}), 200
 
