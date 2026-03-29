@@ -552,5 +552,59 @@ def get_folder_recommendations(folder_id):
     return jsonify({"recommendations": results}), 200
 
 
+@app.route("/api/recommendations/summary", methods=["GET"])
+@login_required
+def get_summary_recommendations():
+    conn = get_db_connection()
+
+    all_bookmarks = conn.execute('''
+        SELECT RecipeId FROM Bookmarks 
+        WHERE FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)
+    ''', (current_user.id,)).fetchall()
+    conn.close()
+
+    user_recipe_ids = [b["RecipeId"] for b in all_bookmarks]
+
+    if not user_recipe_ids:
+        return jsonify({"summary": []}), 200
+
+    indices = [recipe_id_to_idx[rid]
+               for rid in user_recipe_ids if rid in recipe_id_to_idx]
+
+    if not indices:
+        return jsonify({"summary": []}), 200
+
+    user_profile = X_final[indices].mean(axis=0)
+
+    similarity_scores = np.asarray(X_final @ user_profile.T).flatten()
+    predicted_ratings = lgbm_model.predict(X_final)
+
+    scaler = MinMaxScaler()
+    normalized_similarity = scaler.fit_transform(
+        similarity_scores.reshape(-1, 1)).flatten()
+    normalized_ratings = scaler.fit_transform(
+        predicted_ratings.reshape(-1, 1)).flatten()
+
+    final_scores = (normalized_similarity * 0.7) + (normalized_ratings * 0.3)
+
+    final_scores[indices] = -1
+
+    top_indices = final_scores.argsort()[::-1][:6]
+    recommended_ids = [idx_to_recipe_id[idx] for idx in top_indices]
+
+    results_df = searcher.get_by_ids(recommended_ids)
+    summary_list = results_df.to_dict(orient="records")
+
+    return jsonify({"summary": summary_list}), 200
+
+
+@app.route("/api/recommendations/random", methods=["GET"])
+def get_random_recommendations():
+    random_ids = df_ml.sample(6)["RecipeId"].tolist()
+    random_list = searcher.get_by_ids(random_ids).to_dict(orient="records")
+
+    return jsonify({"random": random_list}), 200
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
