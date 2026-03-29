@@ -58,6 +58,54 @@ async function loadFolderRecipes(folderId) {
     }
 }
 
+async function loadFolderRecommendations(folderId) {
+    const spinner = document.getElementById('recommendationSpinner');
+    const list = document.getElementById('recommendationList');
+    const noResults = document.getElementById('noRecommendations');
+
+    spinner.style.display = 'block';
+    list.innerHTML = '';
+    noResults.style.display = 'none';
+
+    try {
+        const res = await fetch(`/api/folders/${folderId}/recommendations`);
+        const data = await res.json();
+
+        spinner.style.display = 'none';
+
+        if (!data.recommendations || data.recommendations.length === 0) {
+            noResults.style.display = 'block';
+            return;
+        }
+
+        data.recommendations.forEach((recipe, i) => {
+            const ings = parseArray(recipe.RecipeIngredientParts);
+            const ingPreview = ings.slice(0, 5).join(', ') + (ings.length > 5 ? '…' : '');
+
+            const item = document.createElement('a');
+            item.className = 'recipe-item';
+            item.href = `/recipes/${recipe.index}`;
+            item.style.animationDelay = `${i * 40}ms`;
+            item.innerHTML = `
+                <img class="recipe-thumb" src="${getImage(recipe.Images)}" loading="lazy" alt="${recipe.Name}">
+                <div class="recipe-info">
+                    <div class="recipe-name">${recipe.Name}</div>
+                    <div class="recipe-ingredients"><strong>Ingredients:</strong> ${ingPreview || '—'}</div>
+                    <div class="recipe-meta">
+                        ${ings.length ? `<span class="badge-ingredients">${ings.length} ingredients</span>` : ''}
+                    </div>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+    } catch (err) {
+        spinner.style.display = 'none';
+        noResults.style.display = 'block';
+        console.error('Error loading recommendations:', err);
+    }
+}
+
 async function renderFoldersList() {
     const foldersList = document.getElementById('foldersList');
     const noFolders = document.getElementById('noFolders');

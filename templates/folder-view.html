@@ -72,6 +72,24 @@
 
                 <div id="recipeList" class="recipe-list"></div>
             </div>
+
+            <div class="recommendations-section">
+                <div class="section-header">
+                    <h2 class="section-title">You might also like</h2>
+                </div>
+                
+                <div id="recommendationSpinner" class="spinner">
+                    <span class="spinner-ring"></span>
+                </div>
+                
+                <div id="noRecommendations" class="no-results" style="display: none;">
+                    <div class="no-results-icon">✨</div>
+                    <h3>No recommendations yet</h3>
+                    <p>Add more recipes to this folder to get personalized suggestions!</p>
+                </div>
+                
+                <div id="recommendationList" class="recipe-list"></div>
+            </div>
         </div>
     </main>
 
@@ -82,6 +100,7 @@
         const folderName = {{ folder_name | tojson }};
         document.addEventListener('DOMContentLoaded', () => {
             loadFolderRecipes(folderId);
+            loadFolderRecommendations(folderId);
         });
     </script>
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>

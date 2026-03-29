@@ -341,3 +341,34 @@
         bottom: 1rem;
     }
 }
+
+.recommendations-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px dashed var(--border);
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+    font-family: "Playfair Display", serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .recommendations-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+    }
+}
