@@ -116,13 +116,6 @@
     color: #f97316;
 }
 
-.bookmark-status {
-    font-size: 14px;
-    color: #6b7280;
-    font-weight: 500;
-    display: none;
-}
-
 .recipe-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;

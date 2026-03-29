@@ -5,7 +5,6 @@ async function checkBookmarkStatus(recipeId) {
 
         if (res.ok && data.is_bookmarked) {
             const bookmarkButton = document.getElementById('bookmarkButton');
-            const bookmarkStatus = document.getElementById('bookmarkStatus');
 
             bookmarkButton.innerHTML = `
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -13,10 +12,6 @@ async function checkBookmarkStatus(recipeId) {
                 </svg>
             `;
             bookmarkButton.classList.add('bookmarked');
-
-            const ratingText = data.rating > 0 ? ` ⭐ ${data.rating}` : '';
-            bookmarkStatus.textContent = `Saved to ${data.folder_name}${ratingText}`;
-            bookmarkStatus.style.display = 'block';
         }
     } catch (err) {
         console.error('Error checking bookmark status:', err);
@@ -70,7 +65,6 @@ async function loadRecipe(recipeId) {
 
 async function removeBookmark() {
     const bookmarkButton = document.getElementById('bookmarkButton');
-    const bookmarkStatus = document.getElementById('bookmarkStatus');
 
     bookmarkButton.disabled = true;
 
@@ -88,7 +82,6 @@ async function removeBookmark() {
                 </svg>
             `;
             bookmarkButton.classList.remove('bookmarked');
-            bookmarkStatus.style.display = 'none';
             showToast('Recipe removed from bookmarks');
         } else {
             showToast(data.error || 'Failed to remove bookmark', 'error');
