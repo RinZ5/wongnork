@@ -37,7 +37,8 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError(
+        "SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -297,11 +298,13 @@ def create_folder():
 def get_folders():
     conn = get_db_connection()
     folders = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (
+            current_user.id,)
     ).fetchall()
     conn.close()
 
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
+                   for f in folders]
 
     return jsonify({"folders": folder_list}), 200
 
@@ -354,6 +357,96 @@ def get_folder_recipes(folder_id):
     results = results_df.reset_index().to_dict(orient="records")
 
     return jsonify({"folder_name": folder["FolderName"], "results": results}), 200
+
+
+@app.route('/api/folders/<int:folder_id>/bookmarks', methods=['POST'])
+@login_required
+def add_bookmark(folder_id):
+    data = request.get_json()
+    recipe_id = data.get('recipe_id')
+    user_rating = data.get('rating')
+
+    if not recipe_id or not user_rating:
+        return jsonify({"error": "Both recipe_id and rating (1-5) are required"}), 400
+
+    try:
+        recipe_id = int(recipe_id)
+        user_rating = int(user_rating)
+        if user_rating < 1 or user_rating > 5:
+            raise ValueError
+    except ValueError:
+        return jsonify({"error": "Rating must be 1-5 and recipe_id must be a number"}), 400
+
+    conn = get_db_connection()
+
+    folder = conn.execute('SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?',
+                          (folder_id, current_user.id)).fetchone()
+    if not folder:
+        conn.close()
+        return jsonify({"error": "Folder not found or access denied"}), 404
+
+    try:
+        conn.execute(
+            'INSERT INTO Bookmarks (FolderId, RecipeId, UserRating) VALUES (?, ?, ?)',
+            (folder_id, recipe_id, user_rating)
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"error": "Recipe is already bookmarked in this folder"}), 409
+
+    conn.close()
+    return jsonify({"message": f"Recipe {recipe_id} saved with a {user_rating}-star rating!"}), 201
+
+
+@app.route('/api/folders/<int:folder_id>/bookmarks', methods=['GET'])
+@login_required
+def get_bookmarks(folder_id):
+    conn = get_db_connection()
+
+    folder = conn.execute('SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?',
+                          (folder_id, current_user.id)).fetchone()
+    if not folder:
+        conn.close()
+        return jsonify({"error": "Folder not found or access denied"}), 404
+
+    bookmarks = conn.execute(
+        'SELECT RecipeId, UserRating FROM Bookmarks WHERE FolderId = ? ORDER BY UserRating DESC',
+        (folder_id,)
+    ).fetchall()
+    conn.close()
+
+    bookmark_list = [{"recipe_id": b["RecipeId"],
+                      "rating": b["UserRating"]} for b in bookmarks]
+
+    return jsonify({"folder_id": folder_id, "bookmarks": bookmark_list}), 200
+
+
+@app.route('/api/recipes/<int:recipe_id>/bookmark_status', methods=['GET'])
+@login_required
+def check_bookmark_status(recipe_id):
+    conn = get_db_connection()
+
+    bookmark = conn.execute('''
+        SELECT b.FolderId, b.UserRating, f.FolderName 
+        FROM Bookmarks b
+        JOIN Folders f ON b.FolderId = f.FolderId
+        WHERE f.UserId = ? AND b.RecipeId = ?
+    ''', (current_user.id, recipe_id)).fetchone()
+
+    conn.close()
+
+    if bookmark:
+        return jsonify({
+            "is_bookmarked": True,
+            "folder_id": bookmark["FolderId"],
+            "folder_name": bookmark["FolderName"],
+            "rating": bookmark["UserRating"]
+        }), 200
+    else:
+        return jsonify({
+            "is_bookmarked": False
+        }), 200
 
 
 if __name__ == "__main__":
