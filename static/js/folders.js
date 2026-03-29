@@ -59,7 +59,7 @@ async function loadFolderContents(folderId) {
 
   if (savedRes.ok && savedRes.data.results.length > 0) {
     savedRes.data.results.forEach(recipe => {
-      savedList.appendChild(createRecipeCard(recipe));
+      savedList.appendChild(createRecipeCard(recipe, true));
     });
   } else {
     document.getElementById('noSavedMessage').style.display = 'block';

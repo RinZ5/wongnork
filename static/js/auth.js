@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (res.ok) {
-        window.location.href = '/folders';
+        window.location.href = '/';
       } else {
         msg.style.color = 'red';
         msg.textContent = res.data.error || 'Login failed';
