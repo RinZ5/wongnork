@@ -1,153 +1,74 @@
-async function checkAuth() {
-    try {
-        const response = await fetch('/api/me');
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-    }
-    return null;
-}
+document.addEventListener('DOMContentLoaded', async () => {
+  const meRes = await fetchSafeJSON('/api/me');
+  if (meRes.ok) {
+    document.querySelectorAll('a[href="/login"], a[href="/register"]').forEach(el => el.style.display = 'none');
+    document.getElementById('navFoldersBtn').style.display = 'inline-block';
+    document.getElementById('navLogoutBtn').style.display = 'inline-block';
+  }
 
-async function handleLogin(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const username = form.username.value;
-    const password = form.password.value;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnSpinner = submitBtn.querySelector('.btn-spinner');
-    const alertEl = document.getElementById('loginAlert');
-    const successEl = document.getElementById('loginSuccess');
-    
-    alertEl.style.display = 'none';
-    successEl.style.display = 'none';
-    
-    btnText.style.display = 'none';
-    btnSpinner.style.display = 'inline-block';
-    submitBtn.disabled = true;
-    
-    try {
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            successEl.textContent = 'Login successful! Redirecting...';
-            successEl.style.display = 'block';
-            
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 800);
-        } else {
-            alertEl.textContent = data.error || 'Login failed. Please try again.';
-            alertEl.style.display = 'block';
-        }
-    } catch (error) {
-        alertEl.textContent = 'Network error. Please try again.';
-        alertEl.style.display = 'block';
-    } finally {
-        btnText.style.display = 'inline';
-        btnSpinner.style.display = 'none';
-        submitBtn.disabled = false;
-    }
-}
-
-async function handleRegister(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const username = form.username.value;
-    const password = form.password.value;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnSpinner = submitBtn.querySelector('.btn-spinner');
-    const alertEl = document.getElementById('registerAlert');
-    const successEl = document.getElementById('registerSuccess');
-    
-    alertEl.style.display = 'none';
-    successEl.style.display = 'none';
-    
-    btnText.style.display = 'none';
-    btnSpinner.style.display = 'inline-block';
-    submitBtn.disabled = true;
-    
-    try {
-        const response = await fetch('/api/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            successEl.textContent = 'Account created successfully! Redirecting to login...';
-            successEl.style.display = 'block';
-            
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 1500);
-        } else {
-            alertEl.textContent = data.error || 'Registration failed. Please try again.';
-            alertEl.style.display = 'block';
-        }
-    } catch (error) {
-        alertEl.textContent = 'Network error. Please try again.';
-        alertEl.style.display = 'block';
-    } finally {
-        btnText.style.display = 'inline';
-        btnSpinner.style.display = 'none';
-        submitBtn.disabled = false;
-    }
-}
-
-async function handleLogout() {
-    try {
-        await fetch('/api/logout', {
-            method: 'POST'
-        });
-        window.location.href = '/';
-    } catch (error) {
-    }
-}
-
-function updateHeaderAuth() {
-    const authButtons = document.querySelector('.auth-buttons');
-    if (!authButtons) return;
-    
-    checkAuth().then(user => {
-        if (user) {
-            authButtons.innerHTML = `
-                <div class="user-menu">
-                    <span class="user-name">${user.username}</span>
-                    <button onclick="handleLogout()" class="btn btn-secondary btn-logout">Logout</button>
-                </div>
-            `;
-        }
+  const logoutBtn = document.getElementById('navLogoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
     });
-}
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    
-    updateHeaderAuth();
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('loginMessage');
+      msg.textContent = 'Logging in...';
+      msg.style.color = 'var(--text-dark)';
+
+      const payload = {
+        username: document.getElementById('loginUsername').value,
+        password: document.getElementById('loginPassword').value
+      };
+
+      const res = await fetchSafeJSON('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        window.location.href = '/folders';
+      } else {
+        msg.style.color = 'red';
+        msg.textContent = res.data.error || 'Login failed';
+      }
+    });
+  }
+
+  const regForm = document.getElementById('registerForm');
+  if (regForm) {
+    regForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('regMessage');
+      msg.textContent = 'Creating account...';
+      msg.style.color = 'var(--text-dark)';
+
+      const payload = {
+        username: document.getElementById('regUsername').value,
+        password: document.getElementById('regPassword').value
+      };
+
+      const res = await fetchSafeJSON('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        msg.style.color = 'green';
+        msg.textContent = 'Success! Redirecting to login...';
+        setTimeout(() => window.location.href = '/login', 1500);
+      } else {
+        msg.style.color = 'red';
+        msg.textContent = res.data.error || 'Registration failed';
+      }
+    });
+  }
 });

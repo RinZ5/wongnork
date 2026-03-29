@@ -5,7 +5,8 @@ import unicodedata
 
 def spell_preprocessor(s):
     s = str(s).lower()
-    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
+    s = unicodedata.normalize("NFKD", s).encode(
+        "ascii", "ignore").decode("utf-8")
     s = re.sub(r"[^a-z\s]", " ", s)
     return s
 
@@ -17,7 +18,8 @@ class CustomPreprocessor:
 
     def __call__(self, s):
         s = str(s).lower()
-        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
+        s = unicodedata.normalize("NFKD", s).encode(
+            "ascii", "ignore").decode("utf-8")
         s = re.sub(r"[^a-z\s]", " ", s)
         tokens = s.split()
         tokens = [w for w in tokens if w not in self.stop_dict and len(w) > 2]
@@ -76,7 +78,8 @@ class RecipeSearchEngine:
         return results
 
     def get_by_ids(self, recipe_ids):
-        mask = self.df.index.isin(recipe_ids)
+        clean_ids = [int(i) for i in recipe_ids]
+        mask = self.df["RecipeId"].isin(clean_ids)
         results = self.df[mask].copy()
         results["Score"] = 0.0
         return results

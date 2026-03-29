@@ -1,92 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — Recipe Search</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/folders.css') }}">
-</head>
+{% block content %}
+<div id="heroSection" class="hero">
+    <h1>Find your next<br><span>favourite recipe</span></h1>
+    <p>Search thousands of recipes by name, ingredient, or cuisine</p>
+    <form id="heroSearchForm" class="hero-search" action="/search" method="get">
+        <input id="heroSearchInput" name="q" type="text" placeholder="e.g. chicken, pasta, vegan stir-fry...">
+        <button type="submit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            Search
+        </button>
+    </form>
+</div>
 
-<body>
-    <header>
-        <div class="header-inner">
-            <a class="brand" href="/">
-                <div class="brand-bubble">W</div>
-                <span class="brand-text">WongNork</span>
-            </a>
+<div id="summarySection" class="recommendation-section" style="display: none;">
+    <div class="section-header">
+        <h2>Recommended for You</h2>
+    </div>
+    <div id="summarySpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="noSummary" class="no-recommendations" style="display: none;">
+        <p>Start bookmarking recipes to get personalized recommendations</p>
+    </div>
+    <div id="summaryList" class="recipe-list"></div>
+</div>
 
-            <div class="brand-cooking">
-                <span class="cooking-icon">🍳</span>
-                <span class="cooking-label">Cooking</span>
-            </div>
+<div id="categorySection" class="recommendation-section" style="display: none;">
+    <div class="section-header">
+        <h2 id="categoryTitle">Your Folders</h2>
+    </div>
+    <div id="categorySpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="categoryList" class="recipe-list"></div>
+</div>
 
-            <div class="auth-buttons">
-                <a href="/login" class="btn btn-secondary">Login</a>
-                <a href="/register" class="btn btn-primary">Sign Up</a>
-            </div>
-        </div>
-    </header>
+<div id="randomSection" class="recommendation-section">
+    <div class="section-header">
+        <h2>Discover New Recipes</h2>
+    </div>
+    <div id="randomSpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="randomList" class="recipe-list"></div>
+</div>
+{% endblock %}
 
-    <main>
-        <div id="heroSection" class="hero">
-            <h1>Find your next<br><span>favourite recipe</span></h1>
-            <p>Search thousands of recipes by name, ingredient, or cuisine</p>
-            <form id="heroSearchForm" class="hero-search" action="/search" method="get">
-                <input id="heroSearchInput" name="q" type="text" placeholder="e.g. chicken, pasta, vegan stir-fry...">
-                <button type="submit">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    Search
-                </button>
-            </form>
-        </div>
-
-        <div id="summarySection" class="recommendation-section" style="display: none;">
-            <div class="section-header">
-                <h2>Recommended for You</h2>
-            </div>
-            
-            <div id="summarySpinner" class="spinner">
-                <span class="spinner-ring"></span>
-            </div>
-            
-            <div id="noSummary" class="no-recommendations" style="display: none;">
-                <p>Start bookmarking recipes to get personalized recommendations</p>
-            </div>
-            
-            <div id="summaryList" class="recipe-list"></div>
-        </div>
-
-        <div id="randomSection" class="recommendation-section">
-            <div class="section-header">
-                <h2>Discover New Recipes</h2>
-            </div>
-            
-            <div id="randomSpinner" class="spinner">
-                <span class="spinner-ring"></span>
-            </div>
-            
-            <div id="randomList" class="recipe-list"></div>
-        </div>
-    </main>
-
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
-</body>
-
-</html>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}

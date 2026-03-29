@@ -5,6 +5,7 @@ import os
 import hashlib
 import requests
 import sqlite3
+import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import (
     LoginManager,
@@ -48,9 +49,7 @@ recipe_id_to_idx = pd.Series(df_ml.index, index=df_ml["RecipeId"]).to_dict()
 idx_to_recipe_id = pd.Series(df_ml["RecipeId"], index=df_ml.index).to_dict()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY")
-if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
+app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret-key-for-dev")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -80,7 +79,6 @@ def load_user(user_id):
         "SELECT * FROM Users WHERE UserId = ?", (user_id,)
     ).fetchone()
     conn.close()
-
     if user_row:
         return User(id=user_row["UserId"], username=user_row["Username"])
     return None
@@ -89,15 +87,12 @@ def load_user(user_id):
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
-
+    username, password = data.get("username"), data.get("password")
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
 
     hashed_pw = generate_password_hash(password)
     conn = get_db_connection()
-
     try:
         conn.execute(
             "INSERT INTO Users (Username, PasswordHash) VALUES (?, ?)",
@@ -115,8 +110,7 @@ def register():
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    username, password = data.get("username"), data.get("password")
 
     conn = get_db_connection()
     user_row = conn.execute(
@@ -127,7 +121,6 @@ def login():
     if user_row and check_password_hash(user_row["PasswordHash"], password):
         user = User(id=user_row["UserId"], username=user_row["Username"])
         login_user(user)
-
         return jsonify({"message": "Logged in successfully", "user_id": user.id}), 200
 
     return jsonify({"error": "Invalid credentials"}), 401
@@ -161,6 +154,33 @@ def register_page():
     return render_template("register.html")
 
 
+@app.route("/search", methods=["GET"])
+def search_page():
+    return render_template("search.html", query=request.args.get("q", ""))
+
+
+@app.route("/folders", methods=["GET"])
+@login_required
+def folders_page():
+    return render_template("folders.html")
+
+
+@app.route("/folders/<int:folder_id>", methods=["GET"])
+@login_required
+def folder_view_page(folder_id):
+    conn = get_db_connection()
+    folder = conn.execute(
+        "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
+        (folder_id, current_user.id),
+    ).fetchone()
+    conn.close()
+    if not folder:
+        return redirect("/folders")
+    return render_template(
+        "folder-view.html", folder_id=folder_id, folder_name=folder["FolderName"]
+    )
+
+
 @app.route("/api/img-proxy", methods=["GET"])
 def img_proxy():
     url = request.args.get("url")
@@ -176,72 +196,17 @@ def img_proxy():
     try:
         response = requests.get(url, stream=True, timeout=5)
         response.raise_for_status()
-
         with open(file_path, "wb") as f:
             for chunk in response.iter_content(1024):
                 f.write(chunk)
-
         return send_file(file_path, mimetype="image/jpeg")
     except Exception:
         return redirect("/static/images/no-image.jpg")
 
 
-@app.route("/search", methods=["GET"])
-def search_page():
-    query = request.args.get("q", "")
-    return render_template("search.html", query=query)
-
-
-@app.route("/recipes/<int:recipe_id>", methods=["GET"])
-def recipe_page(recipe_id):
-    return render_template("recipe.html", recipe_id=recipe_id)
-
-
-@app.route("/recipes/<int:recipe_id>/bookmark", methods=["GET"])
-@login_required
-def bookmark_page(recipe_id):
-    results_df = searcher.get_by_ids([recipe_id])
-
-    if results_df.empty:
-        return render_template("error.html", message="Recipe not found"), 404
-
-    return render_template("bookmark.html", recipe_id=recipe_id)
-
-
-@app.route("/folders", methods=["GET"])
-@login_required
-def folders_page():
-    return render_template("folders.html")
-
-
-@app.route("/folders/new", methods=["GET"])
-@login_required
-def create_folder_page():
-    return render_template("create-folder.html")
-
-
-@app.route("/folders/<int:folder_id>", methods=["GET"])
-@login_required
-def folder_view_page(folder_id):
-    conn = get_db_connection()
-    folder = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
-        (folder_id, current_user.id),
-    ).fetchone()
-    conn.close()
-
-    if not folder:
-        return redirect("/folders")
-
-    return render_template(
-        "folder-view.html", folder_id=folder_id, folder_name=folder["FolderName"]
-    )
-
-
 @app.route("/api/search", methods=["GET"])
 def search():
     query = request.args.get("q", "").lower()
-
     if not query:
         return jsonify(
             {
@@ -253,7 +218,6 @@ def search():
         )
 
     query_words = query.split()
-
     corrected_words = []
     has_typo = False
 
@@ -267,14 +231,16 @@ def search():
 
     results_df = searcher.search(query)
     results_df = results_df[results_df["Score"] > 0.0]
-    results = results_df.reset_index().to_dict(orient="records")
+
+    results_df = results_df.where(pd.notnull(results_df), None)
+    clean_results = results_df.to_dict(orient="records")
 
     return jsonify(
         {
             "original_query": query,
             "has_typo": has_typo,
             "suggested_query": suggested_query if has_typo else "",
-            "results": results,
+            "results": clean_results,
         }
     )
 
@@ -282,52 +248,49 @@ def search():
 @app.route("/api/recipes/<int:recipe_id>", methods=["GET"])
 def get_recipe(recipe_id):
     results_df = searcher.get_by_ids([recipe_id])
-
     if results_df.empty:
         return jsonify({"error": "Recipe not found"}), 404
 
-    recipe_data = results_df.reset_index().iloc[0].to_dict()
-
+    results_df = results_df.where(pd.notnull(results_df), None)
+    recipe_data = results_df.iloc[0].to_dict()
     return jsonify({"recipe": recipe_data}), 200
 
 
-@app.route("/api/folders", methods=["POST"])
+@app.route("/api/folders", methods=["POST", "GET"])
 @login_required
-def create_folder():
-    data = request.get_json()
-    folder_name = data.get("folder_name")
-
-    if not folder_name:
-        return jsonify({"error": "Folder name is required"}), 400
-
+def handle_folders():
     conn = get_db_connection()
-    cursor = conn.cursor()
 
-    cursor.execute(
-        "INSERT INTO Folders (UserId, FolderName) VALUES (?, ?)",
-        (current_user.id, folder_name),
-    )
-    conn.commit()
-    new_folder_id = cursor.lastrowid
-    conn.close()
+    if request.method == "POST":
+        folder_name = request.get_json().get("folder_name")
+        if not folder_name:
+            return jsonify({"error": "Folder name is required"}), 400
 
-    return jsonify(
-        {"message": f"Folder '{folder_name}' created!", "folder_id": new_folder_id}
-    ), 201
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO Folders (UserId, FolderName) VALUES (?, ?)",
+            (current_user.id, folder_name),
+        )
+        conn.commit()
+        folder_id = cursor.lastrowid
+        conn.close()
+        return jsonify(
+            {"message": f"Folder '{folder_name}' created!", "folder_id": folder_id}
+        ), 201
 
-
-@app.route("/api/folders", methods=["GET"])
-@login_required
-def get_folders():
-    conn = get_db_connection()
-    folders = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
-    ).fetchall()
-    conn.close()
-
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
-
-    return jsonify({"folders": folder_list}), 200
+    else:
+        folders = conn.execute(
+            "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?",
+            (current_user.id,),
+        ).fetchall()
+        conn.close()
+        return jsonify(
+            {
+                "folders": [
+                    {"id": f["FolderId"], "name": f["FolderName"]} for f in folders
+                ]
+            }
+        ), 200
 
 
 @app.route("/api/folders/<int:folder_id>", methods=["DELETE"])
@@ -338,7 +301,6 @@ def delete_folder(folder_id):
         "SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?",
         (folder_id, current_user.id),
     ).fetchone()
-
     if not folder:
         conn.close()
         return jsonify({"error": "Folder not found or access denied"}), 404
@@ -346,7 +308,6 @@ def delete_folder(folder_id):
     conn.execute("DELETE FROM Folders WHERE FolderId = ?", (folder_id,))
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Folder deleted successfully"}), 200
 
 
@@ -354,12 +315,10 @@ def delete_folder(folder_id):
 @login_required
 def get_folder_recipes(folder_id):
     conn = get_db_connection()
-
     folder = conn.execute(
         "SELECT FolderId, FolderName FROM Folders WHERE FolderId = ? AND UserId = ?",
         (folder_id, current_user.id),
     ).fetchone()
-
     if not folder:
         conn.close()
         return jsonify({"error": "Folder not found"}), 404
@@ -370,38 +329,20 @@ def get_folder_recipes(folder_id):
     conn.close()
 
     recipe_ids = [b["RecipeId"] for b in bookmarks]
-
     if not recipe_ids:
         return jsonify({"folder_name": folder["FolderName"], "results": []}), 200
 
     results_df = searcher.get_by_ids(recipe_ids)
-    results = results_df.reset_index().to_dict(orient="records")
+    results_df = results_df.where(pd.notnull(results_df), None)
+    results = results_df.to_dict(orient="records")
 
     return jsonify({"folder_name": folder["FolderName"], "results": results}), 200
 
 
-@app.route("/api/folders/<int:folder_id>/bookmarks", methods=["POST"])
+@app.route("/api/folders/<int:folder_id>/bookmarks", methods=["POST", "GET"])
 @login_required
-def add_bookmark(folder_id):
-    data = request.get_json()
-    recipe_id = data.get("recipe_id")
-    user_rating = data.get("rating")
-
-    if not recipe_id or not user_rating:
-        return jsonify({"error": "Both recipe_id and rating (1-5) are required"}), 400
-
-    try:
-        recipe_id = int(recipe_id)
-        user_rating = int(user_rating)
-        if user_rating < 1 or user_rating > 5:
-            raise ValueError
-    except ValueError:
-        return jsonify(
-            {"error": "Rating must be 1-5 and recipe_id must be a number"}
-        ), 400
-
+def handle_bookmarks(folder_id):
     conn = get_db_connection()
-
     folder = conn.execute(
         "SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?",
         (folder_id, current_user.id),
@@ -410,20 +351,44 @@ def add_bookmark(folder_id):
         conn.close()
         return jsonify({"error": "Folder not found or access denied"}), 404
 
-    try:
-        conn.execute(
-            "INSERT INTO Bookmarks (FolderId, RecipeId, UserRating) VALUES (?, ?, ?)",
-            (folder_id, recipe_id, user_rating),
-        )
-        conn.commit()
-    except sqlite3.IntegrityError:
-        conn.close()
-        return jsonify({"error": "Recipe is already bookmarked in this folder"}), 409
+    if request.method == "POST":
+        data = request.get_json()
+        recipe_id, user_rating = data.get("recipe_id"), data.get("rating")
+        if not recipe_id or not user_rating:
+            return jsonify(
+                {"error": "Both recipe_id and rating (1-5) are required"}
+            ), 400
 
-    conn.close()
-    return jsonify(
-        {"message": f"Recipe {recipe_id} saved with a {user_rating}-star rating!"}
-    ), 201
+        try:
+            conn.execute(
+                "INSERT INTO Bookmarks (FolderId, RecipeId, UserRating) VALUES (?, ?, ?)",
+                (folder_id, int(recipe_id), int(user_rating)),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.close()
+            return jsonify(
+                {"error": "Recipe is already bookmarked in this folder"}
+            ), 409
+
+        conn.close()
+        return jsonify({"message": "Saved successfully!"}), 201
+
+    else:
+        bookmarks = conn.execute(
+            "SELECT RecipeId, UserRating FROM Bookmarks WHERE FolderId = ? ORDER BY UserRating DESC",
+            (folder_id,),
+        ).fetchall()
+        conn.close()
+        return jsonify(
+            {
+                "folder_id": folder_id,
+                "bookmarks": [
+                    {"recipe_id": b["RecipeId"], "rating": b["UserRating"]}
+                    for b in bookmarks
+                ],
+            }
+        ), 200
 
 
 @app.route("/api/recipes/<int:recipe_id>/bookmark", methods=["DELETE"])
@@ -431,67 +396,31 @@ def add_bookmark(folder_id):
 def remove_bookmark(recipe_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute(
-        """
-        DELETE FROM Bookmarks 
-        WHERE RecipeId = ? 
-        AND FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)
-    """,
+        "DELETE FROM Bookmarks WHERE RecipeId = ? AND FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)",
         (recipe_id, current_user.id),
     )
-
     rows_affected = cursor.rowcount
     conn.commit()
     conn.close()
 
     if rows_affected > 0:
         return jsonify({"message": "Bookmark removed successfully"}), 200
-    else:
-        return jsonify({"error": "Bookmark not found or access denied"}), 404
-
-
-@app.route("/api/folders/<int:folder_id>/bookmarks", methods=["GET"])
-@login_required
-def get_bookmarks(folder_id):
-    conn = get_db_connection()
-
-    folder = conn.execute(
-        "SELECT * FROM Folders WHERE FolderId = ? AND UserId = ?",
-        (folder_id, current_user.id),
-    ).fetchone()
-    if not folder:
-        conn.close()
-        return jsonify({"error": "Folder not found or access denied"}), 404
-
-    bookmarks = conn.execute(
-        "SELECT RecipeId, UserRating FROM Bookmarks WHERE FolderId = ? ORDER BY UserRating DESC",
-        (folder_id,),
-    ).fetchall()
-    conn.close()
-
-    bookmark_list = [
-        {"recipe_id": b["RecipeId"], "rating": b["UserRating"]} for b in bookmarks
-    ]
-
-    return jsonify({"folder_id": folder_id, "bookmarks": bookmark_list}), 200
+    return jsonify({"error": "Bookmark not found or access denied"}), 404
 
 
 @app.route("/api/recipes/<int:recipe_id>/bookmark_status", methods=["GET"])
 @login_required
 def check_bookmark_status(recipe_id):
     conn = get_db_connection()
-
     bookmark = conn.execute(
         """
         SELECT b.FolderId, b.UserRating, f.FolderName 
-        FROM Bookmarks b
-        JOIN Folders f ON b.FolderId = f.FolderId
+        FROM Bookmarks b JOIN Folders f ON b.FolderId = f.FolderId
         WHERE f.UserId = ? AND b.RecipeId = ?
     """,
         (current_user.id, recipe_id),
     ).fetchone()
-
     conn.close()
 
     if bookmark:
@@ -503,8 +432,85 @@ def check_bookmark_status(recipe_id):
                 "rating": bookmark["UserRating"],
             }
         ), 200
-    else:
-        return jsonify({"is_bookmarked": False}), 200
+    return jsonify({"is_bookmarked": False}), 200
+
+
+@app.route("/api/recommendations/summary", methods=["GET"])
+@login_required
+def get_summary_recommendations():
+    conn = get_db_connection()
+    all_bookmarks = conn.execute(
+        "SELECT RecipeId FROM Bookmarks WHERE FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)",
+        (current_user.id,),
+    ).fetchall()
+    conn.close()
+
+    user_recipe_ids = [b["RecipeId"] for b in all_bookmarks]
+    if not user_recipe_ids:
+        return jsonify({"summary": []}), 200
+
+    indices = [
+        recipe_id_to_idx[rid] for rid in user_recipe_ids if rid in recipe_id_to_idx
+    ]
+    if not indices:
+        return jsonify({"summary": []}), 200
+
+    user_profile = X_final[indices].mean(axis=0)
+    similarity_scores = np.asarray(X_final @ user_profile.T).flatten()
+    predicted_ratings = lgbm_model.predict(X_final)
+
+    scaler = MinMaxScaler()
+    normalized_similarity = scaler.fit_transform(
+        similarity_scores.reshape(-1, 1)
+    ).flatten()
+    normalized_ratings = scaler.fit_transform(
+        predicted_ratings.reshape(-1, 1)
+    ).flatten()
+    final_scores = (normalized_similarity * 0.7) + (normalized_ratings * 0.3)
+    final_scores[indices] = -1
+
+    top_indices = final_scores.argsort()[::-1][:6]
+    recommended_ids = [idx_to_recipe_id[idx] for idx in top_indices]
+
+    results_df = searcher.get_by_ids(recommended_ids)
+    results_df = results_df.where(pd.notnull(results_df), None)
+    return jsonify({"summary": results_df.to_dict(orient="records")}), 200
+
+
+@app.route("/api/recommendations/category", methods=["GET"])
+@login_required
+def get_category_recommendations():
+    conn = get_db_connection()
+    folders = conn.execute(
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (
+            current_user.id,)
+    ).fetchall()
+
+    category_list, category_name = [], "Your Folders"
+    if folders:
+        chosen_folder = random.choice(folders)
+        category_name = chosen_folder["FolderName"]
+        folder_bookmarks = conn.execute(
+            "SELECT RecipeId FROM Bookmarks WHERE FolderId = ? LIMIT 6",
+            (chosen_folder["FolderId"],),
+        ).fetchall()
+
+        cat_ids = [b["RecipeId"] for b in folder_bookmarks]
+        if cat_ids:
+            results_df = searcher.get_by_ids(cat_ids)
+            results_df = results_df.where(pd.notnull(results_df), None)
+            category_list = results_df.to_dict(orient="records")
+
+    conn.close()
+    return jsonify({"category_name": category_name, "recipes": category_list}), 200
+
+
+@app.route("/api/recommendations/random", methods=["GET"])
+def get_random_recommendations():
+    random_ids = df_ml.sample(6)["RecipeId"].tolist()
+    results_df = searcher.get_by_ids(random_ids)
+    results_df = results_df.where(pd.notnull(results_df), None)
+    return jsonify({"random": results_df.to_dict(orient="records")}), 200
 
 
 @app.route("/api/folders/<int:folder_id>/recommendations", methods=["GET"])
@@ -525,14 +531,12 @@ def get_folder_recommendations(folder_id):
     conn.close()
 
     user_recipe_ids = [b["RecipeId"] for b in bookmarks]
-
     if not user_recipe_ids:
         return jsonify({"recommendations": []}), 200
 
     indices = [
         recipe_id_to_idx[rid] for rid in user_recipe_ids if rid in recipe_id_to_idx
     ]
-
     if not indices:
         return jsonify({"recommendations": []}), 200
 
@@ -549,75 +553,13 @@ def get_folder_recommendations(folder_id):
     ).flatten()
     final_scores = (normalized_similarity * 0.7) + (normalized_ratings * 0.3)
     final_scores[indices] = -1
+
     top_indices = final_scores.argsort()[::-1][:10]
     recommended_ids = [idx_to_recipe_id[idx] for idx in top_indices]
 
     results_df = searcher.get_by_ids(recommended_ids)
-    results = results_df.to_dict(orient="records")
-
-    return jsonify({"recommendations": results}), 200
-
-
-@app.route("/api/recommendations/summary", methods=["GET"])
-@login_required
-def get_summary_recommendations():
-    conn = get_db_connection()
-
-    all_bookmarks = conn.execute(
-        """
-        SELECT RecipeId FROM Bookmarks 
-        WHERE FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)
-    """,
-        (current_user.id,),
-    ).fetchall()
-    conn.close()
-
-    user_recipe_ids = [b["RecipeId"] for b in all_bookmarks]
-
-    if not user_recipe_ids:
-        return jsonify({"summary": []}), 200
-
-    indices = [
-        recipe_id_to_idx[rid] for rid in user_recipe_ids if rid in recipe_id_to_idx
-    ]
-
-    if not indices:
-        return jsonify({"summary": []}), 200
-
-    user_profile = X_final[indices].mean(axis=0)
-
-    similarity_scores = np.asarray(X_final @ user_profile.T).flatten()
-    predicted_ratings = lgbm_model.predict(X_final)
-
-    scaler = MinMaxScaler()
-    normalized_similarity = scaler.fit_transform(
-        similarity_scores.reshape(-1, 1)
-    ).flatten()
-    normalized_ratings = scaler.fit_transform(
-        predicted_ratings.reshape(-1, 1)
-    ).flatten()
-
-    final_scores = (normalized_similarity * 0.7) + (normalized_ratings * 0.3)
-
-    final_scores[indices] = -1
-
-    top_indices = final_scores.argsort()[::-1][:6]
-    recommended_ids = [idx_to_recipe_id[idx] for idx in top_indices]
-
-    results_df = searcher.get_by_ids(recommended_ids)
-    summary_list = results_df.reset_index().to_dict(orient="records")
-
-    return jsonify({"summary": summary_list}), 200
-
-
-@app.route("/api/recommendations/random", methods=["GET"])
-def get_random_recommendations():
-    random_ids = df_ml.sample(6)["RecipeId"].tolist()
-    random_list = (
-        searcher.get_by_ids(random_ids).reset_index().to_dict(orient="records")
-    )
-
-    return jsonify({"random": random_list}), 200
+    results_df = results_df.where(pd.notnull(results_df), None)
+    return jsonify({"recommendations": results_df.to_dict(orient="records")}), 200
 
 
 if __name__ == "__main__":
