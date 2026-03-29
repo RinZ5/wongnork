@@ -1,60 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — My Folders</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/folders.css') }}">
-</head>
+{% block content %}
+<div class="folder-header">
+    <h2>Your Folders</h2>
+    <form id="createFolderForm" style="display: flex; gap: 10px;">
+        <input type="text" id="newFolderName" placeholder="New folder name..." required
+            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+        <button type="submit" class="btn btn-primary">+ Create</button>
+    </form>
+</div>
 
-<body>
-    <header>
-        <div class="header-inner">
-            <a class="brand" href="/">
-                <div class="brand-bubble">W</div>
-                <span class="brand-text">WongNork</span>
-            </a>
+<div id="foldersSpinner" class="spinner"><span class="spinner-ring"></span></div>
+<div id="foldersList" class="folder-grid"></div>
+<div id="noFoldersMessage" class="no-recommendations" style="display: none;">
+    <p>You haven't created any folders yet.</p>
+</div>
+{% endblock %}
 
-            <div class="brand-cooking">
-                <span class="cooking-icon">🍳</span>
-                <span class="cooking-label">Cooking</span>
-            </div>
-
-            <div class="auth-buttons">
-                <a href="/login" class="btn btn-secondary">Login</a>
-                <a href="/register" class="btn btn-primary">Sign Up</a>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <div class="folders-page">
-            <div class="folders-header">
-                <h1 class="page-title">My Folders</h1>
-                <a id="createFolderBtn" href="/folders/new" class="btn btn-primary">Create Folder</a>
-            </div>
-
-            <div id="foldersList" class="folders-list">
-                <div class="spinner"><span class="spinner-ring"></span></div>
-            </div>
-
-            <div id="noFolders" class="no-folders" style="display: none;">
-                <div class="no-folders-icon">📁</div>
-                <h3>No folders yet</h3>
-                <p>Create a folder to start saving your favorite recipes</p>
-                <a href="/folders/new" class="btn btn-primary">Create Your First Folder</a>
-            </div>
-        </div>
-    </main>
-
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-</body>
-
-</html>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/folders.js') }}"></script>
+{% endblock %}

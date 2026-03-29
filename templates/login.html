@@ -1,76 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/folders.css') }}">
-</head>
-
-<body>
-    <header>
-        <div class="header-inner">
-            <a class="brand" href="/">
-                <div class="brand-bubble">W</div>
-                <span class="brand-text">WongNork</span>
-            </a>
-
-            <div class="auth-buttons">
-                <a href="/login" class="btn btn-secondary">Login</a>
-                <a href="/register" class="btn btn-primary">Sign Up</a>
-            </div>
+{% block content %}
+<div class="auth-container">
+    <h2>Welcome Back</h2>
+    <form id="loginForm" class="auth-form">
+        <div class="form-group">
+            <label for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" required>
         </div>
-    </header>
-
-    <main>
-        <div class="auth-container">
-            <div class="auth-box">
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Sign in to access your personalized recipe experience</p>
-
-                <div id="loginAlert" class="auth-alert auth-alert-error"></div>
-                <div id="loginSuccess" class="auth-alert auth-alert-success"></div>
-
-                <form id="loginForm" class="auth-form">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" name="username" placeholder="Enter your username" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-full btn-large">
-                        <span class="btn-text">Sign In</span>
-                        <span class="btn-spinner" style="display: none;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10" stroke-opacity="0.3" />
-                                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round">
-                                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
-                                </path>
-                            </svg>
-                        </span>
-                    </button>
-                </form>
-
-                <p class="auth-footer">
-                    Don't have an account? <a href="/register">Create one</a>
-                </p>
-            </div>
+        <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" required>
         </div>
-    </main>
-
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
-</body>
-
-</html>
+        <button type="submit" class="btn btn-primary btn-full">Login</button>
+    </form>
+    <div id="loginMessage" style="margin-top: 15px; text-align: center; font-weight: 500;"></div>
+    <div class="auth-links">
+        <p>Don't have an account? <a href="/register">Sign up here</a></p>
+    </div>
+</div>
+{% endblock %}

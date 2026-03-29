@@ -7,3 +7,5 @@ __pycache__/
 image_cache/
 .env
 wongnork/
+backup/
+app_back.py

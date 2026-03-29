@@ -1,111 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — {{ folder_name }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/folders.css') }}">
-</head>
+{% block content %}
+<div class="folder-header">
+    <h2><span style="color: var(--text-muted); font-size: 1.2rem;">Folder:</span> {{ folder_name }}</h2>
+    <button id="deleteFolderBtn" class="btn btn-secondary" style="color: red; border-color: red;">Delete Folder</button>
+</div>
 
-<body>
-    <header>
-        <div class="header-inner">
-            <a class="brand" href="/">
-                <div class="brand-bubble">W</div>
-                <span class="brand-text">WongNork</span>
-            </a>
+<div class="recommendation-section"
+    style="background: #fff3e0; padding: 2rem; border-radius: var(--radius); margin-bottom: 3rem;">
+    <div class="section-header">
+        <h2>Smart Suggestions</h2>
+        <p style="color: var(--text-muted);">Based on the recipes you've saved in this folder.</p>
+    </div>
+    <div id="mlSpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="mlList" class="recipe-list"></div>
+</div>
 
-            <div class="brand-cooking">
-                <span class="cooking-icon">🍳</span>
-                <span class="cooking-label">Cooking</span>
-            </div>
+<div class="recommendation-section">
+    <div class="section-header">
+        <h2>Saved Recipes</h2>
+    </div>
+    <div id="savedSpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="savedList" class="recipe-list"></div>
+    <div id="noSavedMessage" class="no-recommendations" style="display: none;">
+        <p>This folder is empty. Start searching and saving recipes!</p>
+    </div>
+</div>
 
-            <form id="headerSearchForm" class="header-search" action="/search" method="get">
-                <input id="headerSearchInput" name="q" type="text" placeholder="Search recipes, ingredients...">
-                <button type="submit" aria-label="Search">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                </button>
-            </form>
+<input type="hidden" id="currentFolderId" value="{{ folder_id }}">
+{% endblock %}
 
-            <div class="auth-buttons">
-                <a href="/login" class="btn btn-secondary">Login</a>
-                <a href="/register" class="btn btn-primary">Sign Up</a>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <div class="folder-view">
-            <div class="folder-breadcrumb">
-                <a href="/folders">My Folders</a>
-                <span class="separator">/</span>
-                <span class="current">{{ folder_name }}</span>
-            </div>
-
-            <div class="folder-header">
-                <div>
-                    <h1 class="folder-title">{{ folder_name }}</h1>
-                    <span id="recipeCount" class="recipe-count">Loading...</span>
-                </div>
-                <a href="/folders" class="btn btn-secondary">Back to Folders</a>
-            </div>
-
-            <div id="resultsSection">
-                <div id="spinner" class="spinner"><span class="spinner-ring"></span></div>
-
-                <div id="noResults" class="no-results" style="display: none;">
-                    <div class="no-results-icon">📂</div>
-                    <h3>This folder is empty.....</h3>
-                    <p>Start searching and saving recipes to fill this folder!</p>
-                    <a href="/search" class="btn btn-primary">Search Recipes</a>
-                </div>
-
-                <div id="recipeList" class="recipe-list"></div>
-            </div>
-
-            <div class="recommendations-section">
-                <div class="section-header">
-                    <h2 class="section-title">You might also like</h2>
-                </div>
-                
-                <div id="recommendationSpinner" class="spinner">
-                    <span class="spinner-ring"></span>
-                </div>
-                
-                <div id="noRecommendations" class="no-results" style="display: none;">
-                    <div class="no-results-icon">✨</div>
-                    <h3>No recommendations yet</h3>
-                    <p>Add more recipes to this folder to get personalized suggestions!</p>
-                </div>
-                
-                <div id="recommendationList" class="recipe-list"></div>
-            </div>
-        </div>
-    </main>
-
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script>
-        const folderId = {{ folder_id }};
-        const folderName = {{ folder_name | tojson }};
-        document.addEventListener('DOMContentLoaded', () => {
-            loadFolderRecipes(folderId);
-            loadFolderRecommendations(folderId);
-        });
-    </script>
-    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
-</body>
-
-</html>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/folders.js') }}"></script>
+{% endblock %}

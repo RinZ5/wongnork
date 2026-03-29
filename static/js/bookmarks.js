@@ -1,49 +1,66 @@
-let isLoggedIn = false;
+async function openBookmarkModal(recipeId, recipeName) {
+  document.getElementById('bmRecipeId').value = recipeId;
+  document.getElementById('bmRecipeName').textContent = recipeName;
+  document.getElementById('bmMessage').textContent = '';
 
-checkAuth().then(user => {
-    isLoggedIn = !!user;
-});
+  const folderSelect = document.getElementById('bmFolderSelect');
+  folderSelect.innerHTML = '<option value="">Loading folders...</option>';
+  document.getElementById('bookmarkModal').style.display = 'flex';
 
-function handleBookmarkClick(recipeId, recipeName, event) {
-    if (event) {
-        event.stopPropagation();
-    }
+  const response = await fetchSafeJSON('/api/folders');
 
-    if (!isLoggedIn) {
-        showToast('Please login to save recipes', 'info');
-        setTimeout(() => {
-            window.location.href = '/login';
-        }, 1000);
-        return;
-    }
+  folderSelect.innerHTML = '';
+  if (!response.ok) {
+    folderSelect.innerHTML = '<option value="">Please log in to save recipes.</option>';
+    return;
+  }
 
-    showToast('Save to folder feature coming soon!', 'info');
-}
-
-function getBookmarkIcon(isSaved = false) {
-    return `
-        <button class="bookmark-btn" onclick="handleBookmarkClick(this.dataset.recipeId, this.dataset.recipeName, event)" data-recipe-id="" data-recipe-name="">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-            </svg>
-        </button>
-    `;
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth().then(user => {
-        isLoggedIn = !!user;
+  const folders = response.data.folders || [];
+  if (folders.length === 0) {
+    folderSelect.innerHTML = '<option value="">No folders found. Create one first!</option>';
+  } else {
+    folders.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      folderSelect.appendChild(opt);
     });
-});
+  }
+}
+
+function closeBookmarkModal() {
+  document.getElementById('bookmarkModal').style.display = 'none';
+}
+
+const bookmarkForm = document.getElementById('bookmarkForm');
+if (bookmarkForm) {
+  bookmarkForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const recipeId = document.getElementById('bmRecipeId').value;
+    const folderId = document.getElementById('bmFolderSelect').value;
+    const rating = document.getElementById('bmRating').value;
+    const msgDiv = document.getElementById('bmMessage');
+
+    if (!folderId) {
+      msgDiv.style.color = 'red';
+      msgDiv.textContent = 'Please select a folder.';
+      return;
+    }
+
+    const response = await fetchSafeJSON(`/api/folders/${folderId}/bookmarks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipe_id: recipeId, rating: rating })
+    });
+
+    if (response.ok) {
+      msgDiv.style.color = 'green';
+      msgDiv.textContent = 'Saved successfully!';
+      setTimeout(closeBookmarkModal, 1200);
+    } else {
+      msgDiv.style.color = 'red';
+      msgDiv.textContent = response.data.error || 'Failed to save';
+    }
+  });
+}
