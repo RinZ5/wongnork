@@ -37,10 +37,10 @@ async function executeSearch(query) {
             const ings = parseArray(recipe.RecipeIngredientParts);
             const ingPreview = ings.slice(0, 5).join(', ') + (ings.length > 5 ? '…' : '');
 
-            const item = document.createElement('div');
+            const item = document.createElement('a');
             item.className = 'recipe-item';
+            item.href = `/recipes/${recipe.index}`;
             item.style.animationDelay = `${i * 40}ms`;
-            item.onclick = () => openModal(recipe);
             item.innerHTML = `
                 <img class="recipe-thumb" src="${getImage(recipe.Images)}" loading="lazy" alt="${recipe.Name}">
                 <div class="recipe-info">

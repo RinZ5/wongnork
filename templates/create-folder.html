@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WongNork — Sign Up</title>
+    <title>WongNork — Create Folder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -21,6 +21,11 @@
                 <span class="brand-text">WongNork</span>
             </a>
 
+            <div class="brand-cooking">
+                <span class="cooking-icon">🍳</span>
+                <span class="cooking-label">Cooking</span>
+            </div>
+
             <div class="auth-buttons">
                 <a href="/login" class="btn btn-secondary">Login</a>
                 <a href="/register" class="btn btn-primary">Sign Up</a>
@@ -29,27 +34,29 @@
     </header>
 
     <main>
-        <div class="auth-container">
-            <div class="auth-box">
-                <h1 class="auth-title">Create Account</h1>
-                <p class="auth-subtitle">Join us to discover and save your favorite recipes</p>
+        <div class="create-folder-page">
+            <button class="back-button" onclick="window.location.href='/folders'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to Folders
+            </button>
 
-                <div id="registerAlert" class="auth-alert auth-alert-error"></div>
-                <div id="registerSuccess" class="auth-alert auth-alert-success"></div>
+            <div class="form-container">
+                <div class="form-header">
+                    <div class="form-icon">📁</div>
+                    <h1 class="form-title">Create New Folder</h1>
+                    <p class="form-subtitle">Organize your favorite recipes</p>
+                </div>
 
-                <form id="registerForm" class="auth-form">
+                <form id="createFolderForm" class="auth-form">
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
                     <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" name="username" placeholder="Choose a username" required minlength="3">
+                        <label for="folderName">Folder Name</label>
+                        <input type="text" id="folderName" name="folderName" placeholder="e.g. Favorites, Dinner Ideas" required autocomplete="off">
                     </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Create a password" required minlength="6">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-full btn-large">
-                        <span class="btn-text">Create Account</span>
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <span class="btn-text">Create Folder</span>
                         <span class="btn-spinner" style="display: none;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10" stroke-opacity="0.3" />
@@ -60,17 +67,12 @@
                         </span>
                     </button>
                 </form>
-
-                <p class="auth-footer">
-                    Already have an account? <a href="/login">Sign in</a>
-                </p>
             </div>
         </div>
     </main>
 
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bookmarks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/create-folder.js') }}"></script>
 </body>
 
 </html>

@@ -267,24 +267,6 @@
     margin: 0;
 }
 
-.modal-small {
-  width: 100%;
-  max-width: 420px;
-  padding: 2rem;
-}
-
-.modal-small .modal-body {
-  padding: 0;
-}
-
-.modal-small .modal-title {
-  margin-bottom: 1rem;
-}
-
-.modal-small .auth-form {
-  gap: 1rem;
-}
-
 .toast {
     position: fixed;
     bottom: 2rem;

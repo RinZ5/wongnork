@@ -52,32 +52,7 @@
                 </button>
             </form>
         </div>
-
     </main>
-
-    <div id="createFolderModal" class="modal-overlay">
-        <div class="modal-box modal-small">
-            <button class="modal-close" onclick="closeCreateFolderModal()">✕</button>
-            <h2 class="modal-title">Create New Folder</h2>
-            <form id="createFolderForm" class="auth-form">
-                <div class="form-group">
-                    <label for="folderName">Folder Name</label>
-                    <input type="text" id="folderName" name="folderName" placeholder="e.g. Favorites, Dinner Ideas" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-full">
-                    <span class="btn-text">Create Folder</span>
-                    <span class="btn-spinner" style="display: none;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3" />
-                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round">
-                                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
-                            </path>
-                        </svg>
-                    </span>
-                </button>
-            </form>
-        </div>
-    </div>
 
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
