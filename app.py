@@ -37,7 +37,8 @@ with open("resources/spell_checker.pkl", "rb") as f:
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 if not app.secret_key:
-    raise ValueError("SECRET_KEY environment variable not set. Add it to .env file.")
+    raise ValueError(
+        "SECRET_KEY environment variable not set. Add it to .env file.")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -308,11 +309,13 @@ def create_folder():
 def get_folders():
     conn = get_db_connection()
     folders = conn.execute(
-        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (current_user.id,)
+        "SELECT FolderId, FolderName FROM Folders WHERE UserId = ?", (
+            current_user.id,)
     ).fetchall()
     conn.close()
 
-    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]} for f in folders]
+    folder_list = [{"id": f["FolderId"], "name": f["FolderName"]}
+                   for f in folders]
 
     return jsonify({"folders": folder_list}), 200
 
@@ -411,6 +414,28 @@ def add_bookmark(folder_id):
     return jsonify(
         {"message": f"Recipe {recipe_id} saved with a {user_rating}-star rating!"}
     ), 201
+
+
+@app.route('/api/recipes/<int:recipe_id>/bookmark', methods=['DELETE'])
+@login_required
+def remove_bookmark(recipe_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        DELETE FROM Bookmarks 
+        WHERE RecipeId = ? 
+        AND FolderId IN (SELECT FolderId FROM Folders WHERE UserId = ?)
+    ''', (recipe_id, current_user.id))
+
+    rows_affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+
+    if rows_affected > 0:
+        return jsonify({"message": "Bookmark removed successfully"}), 200
+    else:
+        return jsonify({"error": "Bookmark not found or access denied"}), 404
 
 
 @app.route("/api/folders/<int:folder_id>/bookmarks", methods=["GET"])
