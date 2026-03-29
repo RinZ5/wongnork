@@ -212,6 +212,29 @@
     color: #9ca3af;
 }
 
+.form-group select {
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.98rem;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.form-group select:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group select option[value="create_new"] {
+    font-weight: 600;
+    color: var(--orange);
+}
+
 .auth-alert {
     padding: 0.85rem 1rem;
     border-radius: 8px;
