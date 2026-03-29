@@ -66,7 +66,17 @@
             </div>
 
             <div class="recipe-container">
-                <h1 id="recipeTitle" class="recipe-page-title"></h1>
+                <div class="recipe-header">
+                    <h1 id="recipeTitle" class="recipe-page-title"></h1>
+                    <div id="bookmarkSection" class="bookmark-section">
+                        <button id="bookmarkButton" class="bookmark-btn recipe-bookmark-btn" onclick="handleBookmarkClick()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
+                        <div id="bookmarkStatus" class="bookmark-status"></div>
+                    </div>
+                </div>
 
                 <div class="recipe-columns">
                     <section class="recipe-section">

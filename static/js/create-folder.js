@@ -29,7 +29,9 @@ async function handleCreateFolder(event) {
         const data = await response.json();
 
         if (response.ok) {
-            window.location.href = '/folders';
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+            window.location.href = redirect || '/folders';
         } else {
             errorMessage.textContent = data.error || 'Failed to create folder';
             errorMessage.style.display = 'block';
