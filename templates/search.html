@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="resultsSection">
+    <form id="headerSearchForm" class="hero-search" action="/search" method="get" style="margin-bottom: 30px;">
+        <input id="headerSearchInput" name="q" type="text" placeholder="Search recipes, ingredients..."
+            value="{{ query }}">
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="typoAlert" class="alert" style="display: none;">
+        Did you mean: <a id="suggestedLink" href="#"></a>?
+    </div>
+
+    <div class="results-header">
+        <h2 class="results-title">Recipes for <span id="queryLabel">"{{ query }}"</span></h2>
+        <span id="resultsCount" class="results-count"></span>
+    </div>
+
+    <div id="spinner" class="spinner" style="display: none;"><span class="spinner-ring"></span></div>
+
+    <div id="noResults" class="no-results" style="display: none;">
+        <h3>No recipes found</h3>
+        <p>Try simpler keywords or different ingredients</p>
+    </div>
+
+    <div id="recipeList" class="recipe-list"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const query = "{{ query }}";
+        if (query) {
+            executeSearch(query);
+        }
+    });
+</script>
+{% endblock %}

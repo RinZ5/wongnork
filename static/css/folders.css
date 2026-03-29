@@ -1,0 +1,28 @@
+.folder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+.folder-card {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+  text-decoration: none;
+  color: var(--text-dark);
+  font-weight: bold;
+  font-size: 1.2rem;
+  transition: var(--transition);
+  border: 2px solid transparent;
+}
+.folder-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+}

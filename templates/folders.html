@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="folder-header">
+    <h2>Your Folders</h2>
+    <form id="createFolderForm" style="display: flex; gap: 10px;">
+        <input type="text" id="newFolderName" placeholder="New folder name..." required
+            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+        <button type="submit" class="btn btn-primary">+ Create</button>
+    </form>
+</div>
+
+<div id="foldersSpinner" class="spinner"><span class="spinner-ring"></span></div>
+<div id="foldersList" class="folder-grid"></div>
+<div id="noFoldersMessage" class="no-recommendations" style="display: none;">
+    <p>You haven't created any folders yet.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/folders.js') }}"></script>
+{% endblock %}

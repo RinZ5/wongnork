@@ -1,0 +1,11 @@
+data/
+resources/
+.DS_Store
+.vscode/
+__pycache__/
+.ruff_cache
+image_cache/
+.env
+wongnork/
+backup/
+app_back.py

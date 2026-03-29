@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="folder-header">
+    <h2><span style="color: var(--text-muted); font-size: 1.2rem;">Folder:</span> {{ folder_name }}</h2>
+    <button id="deleteFolderBtn" class="btn btn-secondary" style="color: red; border-color: red;">Delete Folder</button>
+</div>
+
+<div class="recommendation-section"
+    style="background: #fff3e0; padding: 2rem; border-radius: var(--radius); margin-bottom: 3rem;">
+    <div class="section-header">
+        <h2>Smart Suggestions</h2>
+        <p style="color: var(--text-muted);">Based on the recipes you've saved in this folder.</p>
+    </div>
+    <div id="mlSpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="mlList" class="recipe-list"></div>
+</div>
+
+<div class="recommendation-section">
+    <div class="section-header">
+        <h2>Saved Recipes</h2>
+    </div>
+    <div id="savedSpinner" class="spinner"><span class="spinner-ring"></span></div>
+    <div id="savedList" class="recipe-list"></div>
+    <div id="noSavedMessage" class="no-recommendations" style="display: none;">
+        <p>This folder is empty. Start searching and saving recipes!</p>
+    </div>
+</div>
+
+<input type="hidden" id="currentFolderId" value="{{ folder_id }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/folders.js') }}"></script>
+{% endblock %}
